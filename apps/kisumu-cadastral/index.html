@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kisumu Cadastral &amp; Land Administration Portal</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+
+<!-- Bootstrap 4 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.2/css/bootstrap.min.css">
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<!-- Brand type -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Brand theme layer on top of Bootstrap -->
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+<g id="beaconSym"><circle cx="22" cy="22" r="20" fill="none" stroke="#c9a227" stroke-width="2.2"/>
+<circle cx="22" cy="22" r="3.2" fill="#c9a227"/>
+<path d="M22 4v10M22 30v10M4 22h10M30 22h10" stroke="#c9a227" stroke-width="2.2"/>
+<path d="M9.3 9.3l6.4 6.4M28.3 28.3l6.4 6.4M34.7 9.3l-6.4 6.4M15.7 28.3l-6.4 6.4" stroke="#c9a227" stroke-width="1.1" opacity=".6"/></g>
+</defs></svg>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="card login-card shadow-lg">
+    <button class="btn theme-btn login-theme" id="themeBtnL" type="button" aria-label="Toggle light/dark mode">◐</button>
+    <div class="card-body p-4">
+      <div class="crest d-flex align-items-center mb-3">
+        <svg class="beacon mr-3" viewBox="0 0 44 44"><use href="#beaconSym"/></svg>
+        <div>
+          <h1 class="h4 mb-0">Kisumu <span>Cadastral</span> Portal</h1>
+          <div class="sub mt-1">Land Administration · PLUPA 2019</div>
+        </div>
+      </div>
+
+      <div class="btn-group btn-group-toggle d-flex mb-3" role="radiogroup" aria-label="Access role">
+        <button type="button" class="btn role-btn w-100 on" data-role="officer" id="rbO">🏛 Land Officer</button>
+        <button type="button" class="btn role-btn w-100" data-role="developer" id="rbD">📐 Developer</button>
+      </div>
+
+      <div class="form-group field">
+        <label for="u">Username</label>
+        <input id="u" class="form-control" autocomplete="username" value="">
+      </div>
+      <div class="form-group field">
+        <label for="pw">Password</label>
+        <input id="pw" type="password" class="form-control" autocomplete="current-password">
+      </div>
+
+      <button id="loginBtn" type="button" class="btn btn-brand btn-block text-uppercase font-weight-bold">Enter Registry</button>
+      <div id="loginErr" class="small mt-2" role="alert"></div>
+
+      <div class="hint mt-3 pt-3">
+        Demo credentials — Officer: <b>admin / kisumu2026</b> · Developer: <b>guest / guest</b><br>
+        Officer sees proprietor names; Developer view masks them.
+        <div class="dev-credit d-flex align-items-center mt-3">
+          <span class="mr-2">Developed by</span>
+          <img src="assets/lockup_color.png" alt="Mapnovate — Let's map our world" class="lg-light lockup-img">
+          <img src="assets/lockup_white.png" alt="Mapnovate — Let's map our world" class="lg-dark lockup-img">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<!-- ============ TOP BAR ============ -->
+<nav id="topbar" class="navbar navbar-expand fixed-top px-3" style="display:none">
+  <svg class="beacon mr-2" viewBox="0 0 44 44"><use href="#beaconSym"/></svg>
+  <span class="navbar-brand brand py-0 mr-3">Kisumu <span>Cadastral</span><small>Land Registry · Decision Support</small></span>
+
+  <div id="searchWrap" class="flex-grow-1">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9db8b4" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+    <input id="search" class="form-control form-control-sm" placeholder="Search LR No. or proprietor…" autocomplete="off" aria-label="Search parcels">
+    <div id="suggest" class="list-group shadow"></div>
+  </div>
+
+  <div class="spacer flex-grow-1"></div>
+
+  <a class="btn btn-sm back-link mr-2" href="../../index.html" title="Back to Mapnovate">← Mapnovate</a>
+  <button class="btn theme-btn mr-2" id="themeBtnT" type="button" aria-label="Toggle light/dark mode">◐</button>
+  <div id="userChip" class="d-flex align-items-center rounded-pill">
+    <div class="dot" id="uIni">A</div>
+    <div class="ml-2">
+      <div id="uName" class="font-weight-bold">Admin</div>
+      <div class="rl" id="uRole">Land Officer</div>
+    </div>
+    <button id="logout" type="button" class="btn btn-link btn-sm p-0 ml-2">sign out</button>
+  </div>
+</nav>
+
+<!-- ============ LEFT TOOL RAIL ============ -->
+<div id="rail" class="btn-group-vertical" style="display:none">
+  <button type="button" class="btn rail-btn" id="btnLayers" aria-label="Layers" data-toggle="tooltip" data-placement="right" title="Layers &amp; symbology"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></button>
+  <button type="button" class="btn rail-btn" id="btnBase" aria-label="Basemaps" data-toggle="tooltip" data-placement="right" title="Basemaps"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg></button>
+  <button type="button" class="btn rail-btn" id="btnFilter" aria-label="Audit filters" data-toggle="tooltip" data-placement="right" title="Audit filters"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4L4 5z"/></svg></button>
+  <div class="rail-sep"></div>
+  <button type="button" class="btn rail-btn" id="btnMeasure" aria-label="Measure distance" data-toggle="tooltip" data-placement="right" title="Measure (click 2+ points)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 21 18-18"/><path d="m6 18 1.5-1.5M10 14l1.5-1.5M14 10l1.5-1.5M18 6l1.5-1.5"/></svg></button>
+  <button type="button" class="btn rail-btn" id="btnLegend" aria-label="Legend" data-toggle="tooltip" data-placement="right" title="Legend"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><rect x="3" y="4.5" width="3" height="3"/><rect x="3" y="10.5" width="3" height="3"/><rect x="3" y="16.5" width="3" height="3"/></svg></button>
+  <button type="button" class="btn rail-btn" id="btnHome" aria-label="Zoom to Kisumu" data-toggle="tooltip" data-placement="right" title="Zoom to extent"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10z"/></svg></button>
+  <div class="rail-sep"></div>
+  <button type="button" class="btn rail-btn" id="btnExport" aria-label="Export filtered register" data-toggle="tooltip" data-placement="right" title="Export filtered register (CSV)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3h16v-3"/></svg></button>
+</div>
+
+<!-- ============ LAYERS PANEL ============ -->
+<div class="card pop-panel shadow-lg" id="ppLayers">
+  <div class="card-header pp-head d-flex justify-content-between align-items-center">Layers
+    <button type="button" class="close" data-close="ppLayers" aria-label="Close">&times;</button>
+  </div>
+  <div class="card-body pp-body">
+    <div class="pp-sec">Parcel symbology</div>
+    <div class="btn-group btn-group-sm d-flex style-seg" id="styleSeg">
+      <button type="button" class="btn w-100 on" data-s="comp">Compliance</button><button type="button" class="btn w-100" data-s="zone">Zoning</button><button type="button" class="btn w-100" data-s="tenure">Tenure</button><button type="button" class="btn w-100" data-s="risk">Risk</button>
+    </div>
+    <div class="pp-sec">Cadastre</div>
+    <div id="lyrList"></div>
+  </div>
+</div>
+
+<!-- ============ BASEMAP PANEL ============ -->
+<div class="card pop-panel shadow-lg" id="ppBase">
+  <div class="card-header pp-head d-flex justify-content-between align-items-center">Basemaps
+    <button type="button" class="close" data-close="ppBase" aria-label="Close">&times;</button>
+  </div>
+  <div class="card-body pp-body">
+    <div class="bm-grid" id="bmGrid"></div>
+    <div class="lyr-note mt-2 ml-0">Tiles stream from public servers; if offline, use “Survey Dark”.</div>
+  </div>
+</div>
+
+<!-- ============ FILTER PANEL ============ -->
+<div class="card pop-panel shadow-lg" id="ppFilter">
+  <div class="card-header pp-head d-flex justify-content-between align-items-center">Audit Filters
+    <button type="button" class="close" data-close="ppFilter" aria-label="Close">&times;</button>
+  </div>
+  <div class="card-body pp-body">
+    <div class="pp-sec">Compliance status</div><div id="fComp"></div>
+    <div class="pp-sec">Risk indicators</div><div id="fRisk"></div>
+    <div class="pp-sec">Tenure</div><div id="fTen"></div>
+    <div class="d-flex align-items-center mt-2" style="gap:8px">
+      <button type="button" class="btn btn-sm f-chip f-reset" id="fClear">Reset all</button>
+      <span class="f-count" id="fShown"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ AUDIT SIDEBAR ============ -->
+<aside id="audit" class="card rounded-0" aria-label="Parcel audit report">
+  <div class="card-header au-head">
+    <div class="au-eyebrow">Parcel Audit Extract · Reg. Kisumu</div>
+    <div class="au-lr" id="auLR">—</div>
+    <button type="button" class="btn au-close" id="auClose" aria-label="Close panel">✕</button>
+  </div>
+  <div class="card-body au-body" id="auBody"></div>
+  <div class="card-footer au-foot d-flex align-items-center">
+    <img src="assets/lockup_color.png" alt="Mapnovate" class="lg-light">
+    <img src="assets/lockup_white.png" alt="Mapnovate" class="lg-dark">
+    <span class="ml-2">Kisumu Cadastral Portal · audit extract</span>
+  </div>
+</aside>
+
+<!-- ============ DASHBOARD DRAWER ============ -->
+<button id="dashTab" type="button" class="btn btn-sm" style="display:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M6 21V10m6 11V4m6 17v-8"/></svg> Registry Dashboard</button>
+<div id="dash" class="card">
+  <div class="card-header dash-head d-flex align-items-center">
+    <h2 class="mb-0">Registry Audit Dashboard</h2>
+    <button type="button" class="close ml-auto" id="dashClose" aria-label="Collapse dashboard">▾</button>
+  </div>
+  <div class="card-body dash-body">
+    <div class="donut-wrap"><canvas id="donut" width="150" height="150"></canvas><div class="donut-lbl">Compliance mix</div></div>
+    <div class="stat-list" id="statList"></div>
+    <div class="mini-cards" id="miniCards"></div>
+  </div>
+</div>
+
+<div id="legend" class="card"></div>
+<div id="status" class="d-flex"><span id="statCoord">—</span><span>Zoom <span class="brass" id="statZoom">–</span></span><span id="statSel"></span><span class="credit mark-credit d-flex align-items-center"><img src="assets/mark_color.png" alt="" class="lg-light">© <img src="assets/mark_white.png" alt="" class="lg-dark"><b>Mapnovate</b></span></div>
+<div id="toast"></div>
+
+<!-- Bootstrap JS (tooltips) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', function(){
+    if (window.jQuery && jQuery.fn.tooltip) jQuery('[data-toggle="tooltip"]').tooltip({container:'body', boundary:'window'});
+  });
+</script>
+
+<script src="data/parcels.js"></script>
+<script src="data/zoning.js"></script>
+<script src="data/roads_major.js"></script>
+<script src="data/roads_minor.js"></script>
+<script src="data/contours_major.js"></script>
+<script src="data/contours_minor.js"></script>
+<script src="data/river.js"></script>
+<script src="data/markets.js"></script>
+<script src="data/beaches.js"></script>
+<script src="data/labels.js"></script>
+<script src="data/sublocations.js"></script>
+<script src="data/aoi.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

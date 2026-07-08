@@ -1,0 +1,1 @@
+const D_aoi={"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Polygon","coordinates":[[[34.70569,-0.07232],[34.79379,-0.07156],[34.79611,-0.14818],[34.70516,-0.14841],[34.70569,-0.07232]]]}}]};

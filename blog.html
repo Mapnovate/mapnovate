@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog — Mapnovate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header id="siteHeader">
+  <div class="container">
+    <nav>
+      <a href="index.html#top" class="nav-logo">
+        <img src="assets/logo-horizontal-t.png" alt="Mapnovate">
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html#services">Services</a></li>
+        <li><a href="index.html#solutions">Solutions</a></li>
+        <li><a href="index.html#why">Why Us</a></li>
+        <li><a href="blog.html" class="is-active">Blog</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+      </ul>
+      <div class="nav-cta">
+        <a href="index.html#contact" class="btn btn-ghost">Get in Touch</a>
+        <div class="nav-toggle" id="navToggle"><span></span><span></span><span></span></div>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<section class="blog-hero" id="top">
+  <div class="hero-grid-dots"></div>
+  <div class="container">
+    <span class="eyebrow">Mapnovate Blog</span>
+    <h1>Stories from the geospatial frontier</h1>
+    <p>Field notes, case studies and ideas from our GIS, geomatics and data science team — and yours, if you have something to share.</p>
+  </div>
+</section>
+
+<section class="blog-main" id="blogMain">
+  <div class="container">
+
+    <!-- LIST VIEW -->
+    <div id="listView">
+      <div class="blog-toolbar">
+        <div class="blog-search">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#5B6770" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="#5B6770" stroke-width="2" stroke-linecap="round"/></svg>
+          <input type="text" id="searchInput" placeholder="Search posts…">
+        </div>
+        <select id="categoryFilter">
+          <option value="all">All categories</option>
+        </select>
+        <button class="btn btn-primary" id="newPostBtn" type="button">New Post +</button>
+      </div>
+
+      <div class="blog-grid" id="blogGrid"></div>
+      <div class="blog-empty" id="blogEmpty" hidden>
+        <h3>No posts found</h3>
+        <p>Try a different search or category — or be the first to publish one.</p>
+      </div>
+    </div>
+
+    <!-- DETAIL VIEW -->
+    <div id="detailView" hidden>
+      <button class="back-link" id="backBtn" type="button">← Back to all posts</button>
+
+      <article class="post-detail">
+        <span class="post-badge" id="detailCategory"></span>
+        <h1 id="detailTitle"></h1>
+        <div class="post-meta" id="detailMeta"></div>
+        <div class="post-detail-media" id="detailMedia"></div>
+        <div class="post-content" id="detailContent"></div>
+        <button class="post-delete" id="deletePostBtn" type="button">Delete this post</button>
+      </article>
+
+      <section class="comments" id="comments">
+        <h3 id="commentsHeading">Comments</h3>
+        <div class="comment-list" id="commentList"></div>
+        <div class="comment-empty" id="commentEmpty" hidden>No comments yet — start the conversation.</div>
+
+        <form class="comment-form" id="commentForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="commentName">Name</label>
+              <input type="text" id="commentName" placeholder="Your name" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="commentText">Comment</label>
+            <textarea id="commentText" rows="3" placeholder="Add to the discussion…" required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Post Comment</button>
+        </form>
+      </section>
+    </div>
+
+  </div>
+</section>
+
+<!-- NEW POST MODAL -->
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Write a new post</h3>
+      <button class="modal-close" id="modalClose" type="button" aria-label="Close">&times;</button>
+    </div>
+    <form id="postForm">
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label for="postTitle">Title</label>
+          <input type="text" id="postTitle" placeholder="Give your post a title" required>
+        </div>
+        <div class="form-group">
+          <label for="postCategory">Category</label>
+          <select id="postCategory" required>
+            <option value="GIS Solutions">GIS Solutions</option>
+            <option value="Geomatics">Geomatics</option>
+            <option value="Data Science">Data Science</option>
+            <option value="Web Mapping">Web Mapping</option>
+            <option value="Remote Sensing">Remote Sensing</option>
+            <option value="Company News">Company News</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label for="postAuthor">Author</label>
+          <input type="text" id="postAuthor" placeholder="Your name" required>
+        </div>
+        <div class="form-group">
+          <label for="postImage">Cover image</label>
+          <div class="file-input">
+            <label for="postImage" class="file-input-btn">Choose image</label>
+            <input type="file" id="postImage" accept="image/*">
+            <span class="file-input-name" id="fileInputName">No file chosen</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="image-preview" id="imagePreview" hidden>
+        <img id="imagePreviewImg" src="" alt="Cover preview">
+        <button type="button" class="image-preview-remove" id="imagePreviewRemove">Remove</button>
+      </div>
+
+      <div class="form-group">
+        <label for="postExcerpt">Short summary</label>
+        <textarea id="postExcerpt" rows="2" placeholder="One or two sentences shown on the blog grid" required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="postContent">Post content</label>
+        <textarea id="postContent" rows="8" placeholder="Write your post. Leave a blank line between paragraphs." required></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost btn-ghost-light" id="cancelPostBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Publish Post</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <img src="assets/logo-horizontal-t.png" alt="Mapnovate">
+        <p>We transform complex geospatial data into powerful insights and digital solutions that drive better decisions.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul>
+            <li><a href="index.html#services">Services</a></li>
+            <li><a href="index.html#solutions">Solutions</a></li>
+            <li><a href="index.html#why">Why Us</a></li>
+            <li><a href="blog.html">Blog</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Services</h4>
+          <ul>
+            <li><a href="index.html#services">GIS Solutions</a></li>
+            <li><a href="index.html#services">Data Science</a></li>
+            <li><a href="index.html#services">Web Mapping</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Contact</h4>
+          <ul>
+            <li><a href="mailto:info@mapnovate.com">info@mapnovate.com</a></li>
+            <li><a href="tel:+254726674391">+254 726 674 391</a></li>
+            <li><a href="index.html#contact">Nairobi, Kenya</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Mapnovate. All rights reserved.</span>
+      <span class="footer-tagline">Let's map our world!</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js" defer></script>
+<script src="js/blog.js" defer></script>
+
+</body>
+</html>

@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cassini Tools — Kenya datum-shift & coordinate converter | Mapnovate</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
+<style>
+  :root{
+    /* --- Mapnovate brand palette --- */
+    --navy:#081D3A; --navy-deep:#0A1E3D; --teal:#00A896; --green:#2ECC80;
+    --cyan:#00D1C2; --ocean:#0066CC; --lime:#7ED321;
+    --mist:#E6ECEF; --slate:#5B6770; --light-gray:#F2F4F7;
+    --paper:#F7F9FA; --white:#FFFFFF;
+    --navy-70:rgba(8,29,58,.70); --navy-08:rgba(8,29,58,.08);
+    --line:rgba(8,29,58,.12);
+    --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:"Poppins",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --r:10px;
+    /* --- iconography spec: 2px stroke, 4px corner radius --- */
+    --icon-stroke:2; --icon-radius:4px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--sans); color:var(--navy);
+    background:var(--mist);
+    background-image:
+      linear-gradient(var(--navy-08) .5px,transparent .5px),
+      linear-gradient(90deg,var(--navy-08) .5px,transparent .5px);
+    background-size:26px 26px;
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+  }
+  a{color:var(--teal)}
+
+  /* ---------- header ---------- */
+  header.app{
+    background:
+      radial-gradient(680px 340px at 82% -30%, rgba(0,168,150,.20), transparent 70%),
+      var(--navy);
+    color:#fff; position:relative; overflow:hidden;
+    border-bottom:3px solid var(--teal);
+  }
+  header.app .grid-motif{position:absolute;inset:0;opacity:.5;pointer-events:none}
+  header.app .wrap{position:relative;max-width:1180px;margin:0 auto;padding:22px 28px 20px;
+    display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+
+  /* Mapnovate logo lockup — mark + CSS wordmark */
+  .brand-logo{display:flex;align-items:center;gap:13px;text-decoration:none}
+  .brand-logo .mark{width:44px;height:44px;flex:0 0 auto;display:block}
+  .wordmark{display:flex;flex-direction:column;line-height:1}
+  .wm-name{font-family:var(--sans);font-size:22px;letter-spacing:.14em;color:#fff}
+  .wm-name b{font-weight:600;color:#fff}
+  .wm-name i{font-weight:600;font-style:normal;color:var(--teal)}
+  .wm-tag{font-family:var(--sans);font-weight:400;font-size:10.5px;letter-spacing:.02em;
+    color:var(--teal);margin-top:4px;padding-left:1px}
+  .brand-divider{width:1px;height:44px;background:rgba(255,255,255,.16);flex:0 0 auto}
+
+  /* app title block */
+  .brand h1{font-size:19px;font-weight:600;margin:0;letter-spacing:-.01em;
+    display:flex;align-items:center;gap:9px}
+  .brand p{margin:3px 0 0;font-size:12.5px;color:rgba(255,255,255,.68);
+    font-family:var(--mono);letter-spacing:.02em}
+  .brand .badge{display:inline-block;font-size:10px;font-family:var(--mono);
+    color:var(--green);border:1px solid rgba(46,204,128,.5);border-radius:20px;
+    padding:2px 9px;vertical-align:middle;letter-spacing:.04em}
+  header.app .meta{margin-left:auto;text-align:right;font-family:var(--mono);
+    font-size:11px;color:rgba(255,255,255,.6);line-height:1.7}
+  header.app .meta b{color:#fff;font-weight:500}
+  header.app .meta .back-link{display:inline-flex;align-items:center;gap:6px;margin-top:7px;
+    font-family:var(--sans);font-weight:500;font-size:11.5px;color:#fff;text-decoration:none;
+    background:rgba(255,255,255,.06);border:1px solid rgba(46,204,128,.5);
+    border-radius:20px;padding:5px 13px;transition:background .2s ease,border-color .2s ease}
+  header.app .meta .back-link svg{width:13px;height:13px;stroke:var(--green)}
+  header.app .meta .back-link:hover{background:rgba(46,204,128,.14);border-color:var(--green)}
+  @media(max-width:760px){
+    .brand-divider{display:none}
+    header.app .meta{margin-left:0;text-align:left;width:100%}
+  }
+
+  /* ---------- tabs ---------- */
+  .tabbar{max-width:1180px;margin:0 auto;padding:0 28px;display:flex;gap:2px;
+    margin-top:-1px}
+  .tab{appearance:none;border:0;cursor:pointer;background:transparent;
+    font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;
+    color:rgba(255,255,255,.72);padding:11px 18px;border-radius:0 0 0 0;
+    border-bottom:2px solid transparent;position:relative;top:0;
+    display:inline-flex;align-items:center;gap:8px}
+  .tab .tico{width:15px;height:15px;flex:0 0 auto;opacity:.8}
+  .tab .n{color:var(--teal);font-weight:600}
+  .tab[aria-selected="true"]{background:var(--paper);color:var(--navy);
+    border-radius:8px 8px 0 0}
+  .tab[aria-selected="true"] .n{color:var(--teal)}
+  .tab[aria-selected="true"] .tico{opacity:1;stroke:var(--teal)}
+  .tab:not([aria-selected="true"]):hover{color:#fff}
+
+  /* ---------- layout ---------- */
+  main{max-width:1180px;margin:0 auto;padding:22px 28px 60px}
+  .panelwrap{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+  @media(max-width:880px){.panelwrap{grid-template-columns:1fr}}
+  .card{background:var(--white);border:1px solid var(--line);border-radius:var(--r);
+    box-shadow:0 1px 0 rgba(8,29,58,.03),0 6px 24px -18px rgba(8,29,58,.4)}
+  .card .hd{padding:13px 18px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:11px}
+  .card .hd .dot{width:7px;height:7px;border-radius:50%;background:var(--teal)}
+  /* brand iconography: geometric outline, 2px stroke, 4px radius */
+  .hd-icon{width:30px;height:30px;flex:0 0 auto;border-radius:var(--icon-radius);
+    background:linear-gradient(135deg, rgba(0,168,150,.12), rgba(46,204,128,.12));
+    display:flex;align-items:center;justify-content:center}
+  .hd-icon svg{width:18px;height:18px;fill:none;stroke:var(--teal);stroke-width:2;
+    stroke-linecap:round;stroke-linejoin:round}
+  .card .hd h2{font-size:13px;font-weight:600;margin:0;letter-spacing:.01em}
+  .card .hd .sub{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--slate)}
+  .card .bd{padding:18px}
+
+  label.fld{display:block;margin-bottom:14px}
+  label.fld .lab{font-size:11.5px;font-weight:600;color:var(--slate);
+    text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:block}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  select,input,textarea{width:100%;font-family:var(--mono);font-size:13px;color:var(--navy);
+    background:var(--paper);border:1px solid var(--line);border-radius:8px;
+    padding:9px 11px;outline:none;transition:border-color .15s,box-shadow .15s}
+  select:focus,input:focus,textarea:focus{border-color:var(--teal);
+    box-shadow:0 0 0 3px rgba(0,168,150,.16)}
+  input[readonly]{color:var(--slate);background:#eef2f4}
+  textarea{resize:vertical;line-height:1.55}
+
+  /* control point table */
+  .cptable{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .cptable .cphead,.cprow{display:grid;grid-template-columns:34px 1fr 1fr 1fr 1fr 30px;
+    align-items:center}
+  .cptable .cphead{background:var(--navy);color:#fff}
+  .cptable .cphead span{font-family:var(--mono);font-size:10px;letter-spacing:.03em;
+    padding:8px 6px;text-align:center;color:rgba(255,255,255,.82)}
+  .cprow{border-top:1px solid var(--line)}
+  .cprow:first-child{border-top:0}
+  .cprow .idx{font-family:var(--mono);font-size:11px;color:var(--slate);text-align:center}
+  .cprow input{border:0;border-radius:0;background:transparent;padding:8px 8px;font-size:12px}
+  .cprow input:focus{box-shadow:inset 0 0 0 2px rgba(0,168,150,.35)}
+  .cprow .rm{appearance:none;border:0;background:transparent;cursor:pointer;color:var(--slate);
+    font-size:15px;line-height:1;padding:6px}
+  .cprow .rm:hover{color:#c0392b}
+  .cpadd{display:flex;gap:8px;margin-top:10px}
+  .btn-ghost{appearance:none;cursor:pointer;font-family:var(--mono);font-size:11.5px;
+    background:transparent;border:1px dashed var(--line);color:var(--slate);
+    border-radius:7px;padding:7px 12px}
+  .btn-ghost:hover{border-color:var(--teal);color:var(--teal)}
+  .btn-ghost:disabled{opacity:.4;cursor:not-allowed}
+
+  .btn{appearance:none;cursor:pointer;width:100%;font-family:var(--sans);font-weight:600;
+    font-size:14px;color:#fff;background:var(--teal);border:0;border-radius:9px;
+    padding:13px;letter-spacing:.01em;transition:filter .15s,transform .05s;
+    display:flex;align-items:center;justify-content:center;gap:9px}
+  .btn:hover{filter:brightness(1.06)}
+  .btn:active{transform:translateY(1px)}
+  .btn svg{width:16px;height:16px}
+
+  /* readout */
+  .readout{font-family:var(--mono);font-size:12.5px;color:var(--navy);
+    background:var(--navy);color:#dfe8ee;border-radius:8px;padding:16px 16px;
+    white-space:pre-wrap;min-height:120px;line-height:1.65;overflow-x:auto}
+  .readout .k{color:#7fb0c9}
+  .readout .g{color:var(--green)}
+  .readout .a{color:#ffd27a}
+  .readout .rule{color:rgba(255,255,255,.28)}
+  .readout.empty{color:var(--slate);background:var(--paper);border:1px dashed var(--line)}
+
+  .stat{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .stat .s{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+  .stat .s .l{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--slate)}
+  .stat .s .v{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--navy);margin-top:3px}
+  .stat .s.good .v{color:var(--green)}
+  .stat .s.warn .v{color:#d98a1f}
+
+  .proj-out{position:relative;margin-top:14px}
+  .proj-out textarea{background:#0d2547;color:#bfe0da;border-color:transparent;
+    font-size:11.5px;min-height:70px}
+  .copybtn{position:absolute;top:8px;right:8px;appearance:none;cursor:pointer;
+    background:var(--teal);border:0;color:#fff;font-family:var(--mono);font-size:10.5px;
+    border-radius:6px;padding:5px 9px}
+  .copybtn:hover{filter:brightness(1.08)}
+  .copybtn.done{background:var(--green)}
+
+  .note{font-size:12px;color:var(--slate);margin-top:12px;line-height:1.55;
+    border-left:2px solid var(--teal);padding-left:11px}
+  .hint{font-family:var(--mono);font-size:11px;color:var(--slate);margin-top:6px}
+
+  /* batch io */
+  .io2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:560px){.io2{grid-template-columns:1fr}}
+  .io2 textarea{min-height:230px}
+  .batchmeta{font-family:var(--mono);font-size:11px;color:var(--slate);margin-top:10px;
+    display:flex;gap:16px;flex-wrap:wrap}
+  .batchmeta b{color:var(--navy);font-weight:600}
+
+  footer.app{max-width:1180px;margin:0 auto;padding:8px 28px 44px;color:var(--slate);
+    font-size:11.5px;line-height:1.6}
+  footer.app .foot-desc{margin:0}
+  footer.app code{font-family:var(--mono);background:var(--white);border:1px solid var(--line);
+    padding:1px 5px;border-radius:4px;color:var(--navy)}
+  .foot-brand{display:flex;align-items:center;gap:12px;margin-top:20px;padding-top:18px;
+    border-top:1px solid var(--line)}
+  .foot-brand img{height:34px;width:auto;display:block}
+  .foot-brand-txt{display:flex;flex-direction:column;line-height:1.1}
+  .fb-name{font-family:var(--sans);font-weight:600;font-size:13px;letter-spacing:.12em;color:var(--navy)}
+  .fb-tag{font-family:var(--sans);font-size:10.5px;color:var(--teal);margin-top:2px}
+  .foot-copy{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--slate)}
+  @media(max-width:560px){.foot-copy{margin-left:0;width:100%;margin-top:6px}
+    .foot-brand{flex-wrap:wrap}}
+
+  .hidden{display:none}
+  .err{color:#c0392b}
+</style>
+</head>
+<body>
+
+<header class="app">
+  <svg class="grid-motif" preserveAspectRatio="xMidYMid slice" viewBox="0 0 1180 130" aria-hidden="true">
+    <g stroke="#00a896" stroke-width="1" opacity="0.35">
+      <line x1="0" y1="26" x2="1180" y2="26"/><line x1="0" y1="65" x2="1180" y2="65"/>
+      <line x1="0" y1="104" x2="1180" y2="104"/>
+    </g>
+    <g stroke="#00a896" stroke-width="1" opacity="0.18">
+      <line x1="120" y1="0" x2="120" y2="130"/><line x1="360" y1="0" x2="360" y2="130"/>
+      <line x1="620" y1="0" x2="620" y2="130"/><line x1="880" y1="0" x2="880" y2="130"/>
+      <line x1="1080" y1="0" x2="1080" y2="130"/>
+    </g>
+    <line x1="360" y1="104" x2="620" y2="26" stroke="#2ecc80" stroke-width="2"/>
+    <circle cx="360" cy="104" r="5" fill="none" stroke="#2ecc80" stroke-width="2"/>
+    <circle cx="620" cy="26" r="5" fill="#2ecc80"/>
+  </svg>
+  <div class="wrap">
+    <a class="brand-logo" href="../../index.html" aria-label="Mapnovate — Let's map our world">
+      <img class="mark" src="assets/mark_white.png" alt="" />
+      <span class="wordmark">
+        <span class="wm-name"><b>MAP</b><i>NOVATE</i></span>
+        <span class="wm-tag">Let's map our world!</span>
+      </span>
+    </a>
+    <div class="brand-divider" aria-hidden="true"></div>
+    <div class="brand">
+      <h1>Cassini Tools <span class="badge">WEB</span></h1>
+      <p>Kenya legacy Cassini-Soldner → modern datum toolkit</p>
+    </div>
+    <div class="meta">
+      <div>ellipsoid <b>Clarke 1858</b></div>
+      <div>engine <b>proj4js + Helmert</b></div>
+      <a class="back-link" href="../../index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back to Mapnovate
+      </a>
+    </div>
+  </div>
+  <div class="tabbar" role="tablist">
+    <button class="tab" role="tab" id="tab1" aria-selected="true" aria-controls="p1">
+      <svg class="tico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 00-8 8c0 5.5 8 12 8 12s8-6.5 8-12a8 8 0 00-8-8z"/></svg>
+      <span class="n">01</span>Datum Shift Finder</button>
+    <button class="tab" role="tab" id="tab2" aria-selected="false" aria-controls="p2">
+      <svg class="tico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h12l-3-3M4 8l3 3"/><path d="M20 16H8l3 3M20 16l-3-3"/></svg>
+      <span class="n">02</span>Coordinate Converter</button>
+  </div>
+</header>
+
+<main>
+  <!-- ============ TAB 1 ============ -->
+  <section id="p1" role="tabpanel" aria-labelledby="tab1">
+    <div class="panelwrap">
+      <!-- inputs -->
+      <div class="card">
+        <div class="hd">
+          <span class="hd-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 3v18M4 7.5l8 4.5 8-4.5"/></svg>
+          </span>
+          <h2>Control network</h2>
+          <span class="sub" id="cpcount">4 points</span></div>
+        <div class="bd">
+          <div class="row3">
+            <label class="fld"><span class="lab">Meridian lon₀</span>
+              <select id="meridian">
+                <option>35</option><option selected>37</option><option>39</option><option>41</option>
+              </select></label>
+            <label class="fld"><span class="lab">Cassini units</span>
+              <select id="units">
+                <option value="m">Metres</option>
+                <option value="ft">Feet (Clarke)</option>
+              </select></label>
+            <label class="fld"><span class="lab">Model</span>
+              <select id="model">
+                <option value="auto">Auto</option>
+                <option value="7">7-parameter</option>
+                <option value="3">3-parameter</option>
+              </select></label>
+          </div>
+
+          <label class="fld"><span class="lab">Reference CRS (target)</span>
+            <select id="refcrs">
+              <option value="21037">EPSG:21037 — Arc 1960 / UTM zone 37S</option>
+              <option value="21036">EPSG:21036 — Arc 1960 / UTM zone 36S</option>
+              <option value="32737">EPSG:32737 — WGS 84 / UTM zone 37S</option>
+              <option value="32736">EPSG:32736 — WGS 84 / UTM zone 36S</option>
+              <option value="4326">EPSG:4326 — WGS 84 (lon/lat)</option>
+            </select></label>
+
+          <span class="lab" style="margin-bottom:6px;display:block">Control points</span>
+          <div class="cptable">
+            <div class="cphead">
+              <span>#</span><span>CASS E</span><span>CASS N</span><span>REF E</span><span>REF N</span><span></span>
+            </div>
+            <div id="cprows"></div>
+          </div>
+          <div class="cpadd">
+            <button class="btn-ghost" id="addpt">+ Add point</button>
+            <button class="btn-ghost" id="delpt">− Remove last</button>
+          </div>
+          <div class="hint">Enter 3+ points (4+ enables the 7-parameter model). Format: Cassini easting/northing paired with the same station's reference easting/northing.</div>
+
+          <div style="margin-top:16px">
+            <button class="btn" id="compute">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="4"/><path d="M8 7h8M8 11h5"/><circle cx="15.5" cy="15.5" r="3"/><path d="M17.6 17.6L20 20"/></svg>
+              Compute parameters
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- results -->
+      <div class="card">
+        <div class="hd">
+          <span class="hd-icon" aria-hidden="true" style="background:linear-gradient(135deg,rgba(46,204,128,.14),rgba(0,168,150,.10))">
+            <svg viewBox="0 0 24 24" style="stroke:var(--green)"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l3.5-4 3 3L20 7"/><circle cx="20" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="10.5" cy="11" r="1.4" fill="currentColor" stroke="none"/></svg>
+          </span>
+          <h2>Computation sheet</h2>
+          <span class="sub" id="modelused">—</span></div>
+        <div class="bd">
+          <div class="stat" id="stats">
+            <div class="s"><div class="l">Model</div><div class="v" id="st-model">—</div></div>
+            <div class="s"><div class="l">Round-trip RMSE</div><div class="v" id="st-rmse">—</div></div>
+            <div class="s"><div class="l">Points used</div><div class="v" id="st-n">—</div></div>
+          </div>
+          <div class="readout empty" id="readout">Enter your control network and press <b>Compute parameters</b>. Results — translations, rotations, scale, and the fitted PROJ string — appear here.</div>
+
+          <div class="proj-out hidden" id="projwrap">
+            <span class="lab" style="margin-bottom:6px;display:block">Generated PROJ string (custom CRS)</span>
+            <textarea id="projout" readonly rows="3"></textarea>
+            <button class="copybtn" id="copyproj">COPY</button>
+          </div>
+          <div class="note hidden" id="modelnote"></div>
+          <div class="hint hidden" id="sendconv" style="margin-top:12px">
+            → Sent to the Coordinate Converter tab automatically.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 2 ============ -->
+  <section id="p2" role="tabpanel" aria-labelledby="tab2" class="hidden">
+    <div class="card">
+      <div class="hd">
+        <span class="hd-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M3 9h18"/><path d="M7.5 14l2 2 5-5"/></svg>
+        </span>
+        <h2>Batch coordinate converter</h2>
+        <span class="sub">paste → convert</span></div>
+      <div class="bd">
+        <label class="fld"><span class="lab">Source Cassini PROJ string</span>
+          <input id="srcproj" value="" spellcheck="false">
+          <div class="hint">Run the Datum Shift Finder first to fill this with a string that includes the fitted <code style="font-family:var(--mono)">+towgs84</code> shift, or paste your own.</div>
+        </label>
+
+        <label class="fld"><span class="lab">Target CRS</span>
+          <select id="tgtcrs">
+            <option value="21037">EPSG:21037 — Arc 1960 / UTM zone 37S</option>
+            <option value="21036">EPSG:21036 — Arc 1960 / UTM zone 36S</option>
+            <option value="32737">EPSG:32737 — WGS 84 / UTM zone 37S</option>
+            <option value="32736">EPSG:32736 — WGS 84 / UTM zone 36S</option>
+            <option value="4326">EPSG:4326 — WGS 84 (lon/lat)</option>
+          </select></label>
+
+        <div class="io2">
+          <div>
+            <span class="lab" style="margin-bottom:6px;display:block">Input — Cassini easting, northing</span>
+            <textarea id="batchin" spellcheck="false" placeholder="Paste rows (comma, tab or space separated):&#10;12000.0  -4000.0&#10;13000.0, -3500.0">12000.0	-4000.0
+13000.0	-3500.0
+11500.0	-4800.0</textarea>
+          </div>
+          <div>
+            <span class="lab" style="margin-bottom:6px;display:block">Output — target E, N</span>
+            <textarea id="batchout" readonly placeholder="Converted coordinates appear here…"></textarea>
+          </div>
+        </div>
+        <div class="batchmeta" id="batchmeta"></div>
+
+        <div style="margin-top:16px;max-width:320px">
+          <button class="btn" id="convert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h12l-3-3M4 8l3 3"/><path d="M20 16H8l3 3M20 16l-3-3"/></svg>
+            Convert to target CRS
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="app">
+  <p class="foot-desc">Cassini Tools (web) reproduces the desktop plugin's geodetic engine in the browser: Clarke 1858 ellipsoid, position-vector Helmert (EPSG&nbsp;9606), centroid-reduced least squares with adaptive 3/7-parameter selection, and honest ground round-trip accuracy. Transforms run locally via <code>proj4js</code> — no data leaves your device. Control points are treated at ellipsoidal height 0.</p>
+  <div class="foot-brand">
+    <img src="assets/mark_color.png" alt="Mapnovate" />
+    <div class="foot-brand-txt">
+      <span class="fb-name">MAPNOVATE</span>
+      <span class="fb-tag">Let's map our world!</span>
+    </div>
+    <span class="foot-copy">© 2026 Mapnovate · A Mapnovate geospatial tool</span>
+  </div>
+</footer>
+
+<script>
+/* ========================================================================
+   Geodetic core — ported & validated against the desktop plugin (pyproj/PROJ)
+   ===================================================================== */
+const CLARKE1858_A=6378293.645208759, CLARKE1858_RF=294.2606763692606, CLARKE_FOOT=0.3047972654;
+
+function cassiniBaseProj4(lon0,units){
+  const u=units==='ft'?`+to_meter=${CLARKE_FOOT}`:'+units=m';
+  return `+proj=cass +lat_0=0 +lon_0=${lon0} +x_0=0 +y_0=0 +a=${CLARKE1858_A} +rf=${CLARKE1858_RF} ${u} +no_defs`;
+}
+function cassiniProj4WithTowgs84(lon0,towgs,units){
+  const u=units==='ft'?`+to_meter=${CLARKE_FOOT}`:'+units=m';
+  return `+proj=cass +lat_0=0 +lon_0=${lon0} +x_0=0 +y_0=0 +a=${CLARKE1858_A} +rf=${CLARKE1858_RF} +towgs84=${towgs} ${u} +no_defs +type=crs`;
+}
+function matT(A){const r=A.length,c=A[0].length,T=[];for(let j=0;j<c;j++){T[j]=[];for(let i=0;i<r;i++)T[j][i]=A[i][j];}return T;}
+function matMul(A,B){const r=A.length,n=A[0].length,c=B[0].length,R=[];for(let i=0;i<r;i++){R[i]=[];for(let j=0;j<c;j++){let s=0;for(let k=0;k<n;k++)s+=A[i][k]*B[k][j];R[i][j]=s;}}return R;}
+function solve(A,b){
+  const n=A.length,M=A.map((row,i)=>row.concat([b[i][0]]));
+  for(let col=0;col<n;col++){
+    let piv=col;for(let r=col+1;r<n;r++)if(Math.abs(M[r][col])>Math.abs(M[piv][col]))piv=r;
+    [M[col],M[piv]]=[M[piv],M[col]];
+    const d=M[col][col];if(Math.abs(d)<1e-300)throw new Error('singular system');
+    for(let j=col;j<=n;j++)M[col][j]/=d;
+    for(let r=0;r<n;r++){if(r===col)continue;const f=M[r][col];for(let j=col;j<=n;j++)M[r][j]-=f*M[col][j];}
+  }
+  return M.map(row=>[row[n]]);
+}
+function lstsq(A,L){const At=matT(A);return solve(matMul(At,A),matMul(At,L));}
+function condEstimate(A){
+  const At=matT(A),AtA=matMul(At,A),n=AtA.length;
+  const powIter=(M,inv)=>{let v=Array(n).fill(1);for(let it=0;it<180;it++){let w=inv?solve(M,v.map(x=>[x])).map(r=>r[0]):M.map(row=>row.reduce((s,m,i)=>s+m*v[i],0));const nr=Math.hypot(...w)||1;v=w.map(x=>x/nr);}
+    const Mv=inv?solve(M,v.map(x=>[x])).map(r=>r[0]):M.map(row=>row.reduce((s,m,i)=>s+m*v[i],0));
+    return Math.abs(v.reduce((s,x,i)=>s+x*Mv[i],0));};
+  const lmax=powIter(AtA,false);let lmin;try{lmin=1/powIter(AtA,true);}catch(e){lmin=1e-30;}
+  return Math.sqrt(Math.abs(lmax/Math.max(lmin,1e-30)));
+}
+function pvMatrix(rx,ry,rz){return[[1,-rz,ry],[rz,1,-rx],[-ry,rx,1]];}
+function applyHelmert(xyz,p){const R=pvMatrix(p.rx,p.ry,p.rz),sc=1+p.s;
+  return xyz.map(v=>[p.dx+sc*(R[0][0]*v[0]+R[0][1]*v[1]+R[0][2]*v[2]),
+                     p.dy+sc*(R[1][0]*v[0]+R[1][1]*v[1]+R[1][2]*v[2]),
+                     p.dz+sc*(R[2][0]*v[0]+R[2][1]*v[1]+R[2][2]*v[2])]);}
+function rmseXyz(src,tgt,p){const pr=applyHelmert(src,p);let s=0;for(let i=0;i<src.length;i++){const a=pr[i][0]-tgt[i][0],b=pr[i][1]-tgt[i][1],c=pr[i][2]-tgt[i][2];s+=a*a+b*b+c*c;}return Math.sqrt(s/src.length);}
+function centroid(a){const n=a.length,c=[0,0,0];a.forEach(v=>{c[0]+=v[0];c[1]+=v[1];c[2]+=v[2];});return[c[0]/n,c[1]/n,c[2]/n];}
+function solveReduced(src,tgt,np){
+  const cs=centroid(src),ct=centroid(tgt),n=src.length;
+  const sR=src.map(v=>[v[0]-cs[0],v[1]-cs[1],v[2]-cs[2]]);
+  const tR=tgt.map(v=>[v[0]-ct[0],v[1]-ct[1],v[2]-ct[2]]);
+  if(np===3){const A=[],L=[];
+    for(let i=0;i<n;i++){A.push([1,0,0],[0,1,0],[0,0,1]);L.push([tR[i][0]-sR[i][0]],[tR[i][1]-sR[i][1]],[tR[i][2]-sR[i][2]]);}
+    const P=lstsq(A,L),cond=condEstimate(A);
+    return[{dx:(ct[0]-cs[0])+P[0][0],dy:(ct[1]-cs[1])+P[1][0],dz:(ct[2]-cs[2])+P[2][0],rx:0,ry:0,rz:0,s:0},cond];}
+  const A=[],L=[];
+  for(let i=0;i<n;i++){const[X,Y,Z]=sR[i],[Xt,Yt,Zt]=tR[i];
+    A.push([1,0,0,0,Z,-Y,X],[0,1,0,-Z,0,X,Y],[0,0,1,Y,-X,0,Z]);
+    L.push([Xt-X],[Yt-Y],[Zt-Z]);}
+  const P=lstsq(A,L),cond=condEstimate(A);
+  const rx=P[3][0],ry=P[4][0],rz=P[5][0],s=P[6][0],R=pvMatrix(rx,ry,rz),sc=1+s;
+  return[{dx:ct[0]-sc*(R[0][0]*cs[0]+R[0][1]*cs[1]+R[0][2]*cs[2]),
+          dy:ct[1]-sc*(R[1][0]*cs[0]+R[1][1]*cs[1]+R[1][2]*cs[2]),
+          dz:ct[2]-sc*(R[2][0]*cs[0]+R[2][1]*cs[1]+R[2][2]*cs[2]),rx,ry,rz,s},cond];
+}
+function estimateHelmert(src,tgt,prefer){
+  prefer=prefer||'auto';const n=src.length;
+  if(n<3)throw new Error('At least 3 control points are required.');
+  const[p3,cond3]=solveReduced(src,tgt,3),rmse3=rmseXyz(src,tgt,p3);
+  const sevenOk=n>=4;let p7=null,cond7=Infinity,rmse7=Infinity;
+  if(sevenOk){[p7,cond7]=solveReduced(src,tgt,7);rmse7=rmseXyz(src,tgt,p7);}
+  const ILL=1e8;let chosen,model,rmse,cond,note;
+  if(prefer==='7'){if(!sevenOk)throw new Error('The 7-parameter model needs at least 4 control points.');chosen=p7;model='7';rmse=rmse7;cond=cond7;note='7-parameter model forced.';}
+  else if(prefer==='3'){chosen=p3;model='3';rmse=rmse3;cond=cond3;note='3-parameter (translation-only) model forced.';}
+  else{const ratio=rmse3>0?rmse7/rmse3:0,better=sevenOk&&cond7<ILL&&ratio<0.5;
+    if(better){chosen=p7;model='7';rmse=rmse7;cond=cond7;note='Auto-selected the 7-parameter model — substantially better fit and well conditioned.';}
+    else{chosen=p3;model='3';rmse=rmse3;cond=cond3;
+      note=(sevenOk&&cond7>=ILL)?'Auto-selected the 3-parameter model — the 7-parameter solve was ill-conditioned (control points too clustered to resolve rotations/scale reliably).':'Auto-selected the 3-parameter model — rotations and scale did not improve the fit enough to justify the extra parameters, which avoids overfitting a small network.';}}
+  return{params:chosen,model,rmse,cond,cond7,note};
+}
+function formatTowgs84(p){const ex=p.rx*180/Math.PI*3600,ey=p.ry*180/Math.PI*3600,ez=p.rz*180/Math.PI*3600,ppm=p.s*1e6;
+  return `${p.dx.toFixed(4)},${p.dy.toFixed(4)},${p.dz.toFixed(4)},${ex.toFixed(6)},${ey.toFixed(6)},${ez.toFixed(6)},${ppm.toFixed(6)}`;}
+
+/* ------- proj4 CRS definitions (Kenya-relevant) -------
+   Registered lazily so a slow or failed CDN load never blocks UI wiring. --- */
+const CRS_DEFS={
+  'EPSG:4978':'+proj=geocent +datum=WGS84 +units=m +no_defs',
+  'EPSG:4326':'+proj=longlat +datum=WGS84 +no_defs',
+  'EPSG:21037':'+proj=utm +zone=37 +south +ellps=clrk80 +towgs84=-160,-6,-302,0,0,0,0 +units=m +no_defs +type=crs',
+  'EPSG:21036':'+proj=utm +zone=36 +south +ellps=clrk80 +towgs84=-160,-6,-302,0,0,0,0 +units=m +no_defs +type=crs',
+  'EPSG:32737':'+proj=utm +zone=37 +south +datum=WGS84 +units=m +no_defs +type=crs',
+  'EPSG:32736':'+proj=utm +zone=36 +south +datum=WGS84 +units=m +no_defs +type=crs',
+};
+let defsRegistered=false;
+function projReady(){return typeof proj4!=='undefined';}
+function ensureDefs(){if(!projReady())return false;if(!defsRegistered){for(const k in CRS_DEFS)proj4.defs(k,CRS_DEFS[k]);defsRegistered=true;}return true;}
+const PROJ_UNAVAILABLE='The projection library (proj4js) has not loaded. Check your connection and reload the page.';
+
+/* ========================================================================
+   UI wiring
+   ===================================================================== */
+const $=s=>document.querySelector(s);
+const cprows=$('#cprows');
+const DEFAULTS=[
+  ['12500.0','-4500.0','289902.9','9995499.4'],
+  ['13200.0','-3100.0','290602.9','9996899.6'],
+  ['11100.0','-5200.0','288502.7','9994799.2'],
+  ['14500.0','-3900.0','291903.1','9996099.5'],
+];
+function makeRow(vals){
+  const div=document.createElement('div');div.className='cprow';
+  div.innerHTML=`<div class="idx"></div>`+
+    vals.map((v,i)=>`<input inputmode="decimal" value="${v}" data-c="${i}">`).join('')+
+    `<button class="rm" title="remove">×</button>`;
+  div.querySelector('.rm').onclick=()=>{if(cprows.children.length>3){div.remove();renumber();}};
+  return div;
+}
+function renumber(){[...cprows.children].forEach((r,i)=>{r.querySelector('.idx').textContent=i+1;});
+  $('#cpcount').textContent=cprows.children.length+' points';
+  $('#delpt').disabled=cprows.children.length<=3;}
+DEFAULTS.forEach(v=>cprows.appendChild(makeRow(v)));renumber();
+$('#addpt').onclick=()=>{cprows.appendChild(makeRow(['','','','']));renumber();};
+$('#delpt').onclick=()=>{if(cprows.children.length>3){cprows.lastElementChild.remove();renumber();}};
+
+/* tab switching */
+function selectTab(which){
+  const t1=which==='1';
+  $('#tab1').setAttribute('aria-selected',t1);$('#tab2').setAttribute('aria-selected',!t1);
+  $('#p1').classList.toggle('hidden',!t1);$('#p2').classList.toggle('hidden',t1);
+}
+$('#tab1').onclick=()=>selectTab('1');$('#tab2').onclick=()=>selectTab('2');
+
+/* prime the converter's default source string */
+function refreshSrcDefault(){
+  if(!$('#srcproj').value.trim()){
+    $('#srcproj').value=cassiniBaseProj4($('#meridian').value,$('#units').value);
+  }
+}
+refreshSrcDefault();
+
+/* ---- compute ---- */
+$('#compute').onclick=()=>{
+  const out=$('#readout');
+  if(!ensureDefs()){out.classList.remove('empty');out.innerHTML=`<span class="err">${PROJ_UNAVAILABLE}</span>`;return;}
+  try{
+    const lon0=$('#meridian').value, units=$('#units').value, prefer=$('#model').value;
+    const refEpsg=$('#refcrs').value, refDef='EPSG:'+refEpsg;
+    const base=cassiniBaseProj4(lon0,units);
+    const src=[],tgt=[],cassGrid=[],refGrid=[];
+    for(const row of cprows.children){
+      const c=[...row.querySelectorAll('input')].map(i=>i.value.trim());
+      if(c.some(x=>x==='')) continue;
+      const [ce,cn,re,rn]=c.map(Number);
+      if(c.map(Number).some(isNaN)) throw new Error('Non-numeric value in the control table.');
+      // 3D ECEF: proj4 geocent returns [X,Y,Z]
+      const s=proj4(base,'EPSG:4978',[ce,cn,0]);
+      const t=proj4(refDef,'EPSG:4978',[re,rn,0]);
+      src.push([s[0],s[1],s[2]]);tgt.push([t[0],t[1],t[2]]);
+      cassGrid.push([ce,cn]);refGrid.push([re,rn]);
+    }
+    if(src.length<3) throw new Error('Enter at least 3 complete control points.');
+
+    const res=estimateHelmert(src,tgt,prefer);
+    const towgs=formatTowgs84(res.params);
+    const gen=cassiniProj4WithTowgs84(lon0,towgs,units);
+
+    // TRUE ground round-trip RMSE via proj4
+    let rt=null;
+    try{
+      let sum=0,k=0;
+      for(let i=0;i<cassGrid.length;i++){
+        const [pe,pn]=proj4(gen,refDef,[cassGrid[i][0],cassGrid[i][1]]);
+        sum+=(pe-refGrid[i][0])**2+(pn-refGrid[i][1])**2;k++;
+      }
+      rt=Math.sqrt(sum/k);
+    }catch(e){rt=null;}
+
+    const p=res.params;
+    const ex=(p.rx*180/Math.PI*3600), ey=(p.ry*180/Math.PI*3600), ez=(p.rz*180/Math.PI*3600), ppm=p.s*1e6;
+    const unitLabel=units==='ft'?"Clarke's feet":'metres';
+    const sign=v=>(v>=0?'+':'')+v;
+
+    out.classList.remove('empty');
+    out.innerHTML=
+`<span class="rule">──── TRANSFORMATION ────</span>
+<span class="k">meridian</span>   ${lon0}° E   <span class="k">units</span> ${unitLabel}
+<span class="k">model</span>      ${res.model}-parameter (position-vector)
+
+<span class="k">dX</span> ${sign(p.dx.toFixed(3))} m   <span class="k">dY</span> ${sign(p.dy.toFixed(3))} m   <span class="k">dZ</span> ${sign(p.dz.toFixed(3))} m
+<span class="k">rX</span> ${sign(ex.toFixed(4))}"  <span class="k">rY</span> ${sign(ey.toFixed(4))}"  <span class="k">rZ</span> ${sign(ez.toFixed(4))}"
+<span class="k">scale</span> ${sign(ppm.toFixed(5))} ppm
+${rt!=null?`<span class="k">ground RMSE</span> <span class="g">${rt.toFixed(3)} m</span>`:`<span class="k">fit RMSE</span> ${res.rmse.toFixed(3)} m`}`;
+
+    // stats
+    $('#st-model').textContent=res.model+'-param';
+    $('#st-n').textContent=src.length;
+    const rmseCell=$('#st-rmse'), sBox=rmseCell.closest('.s');
+    sBox.classList.remove('good','warn');
+    if(rt!=null){ rmseCell.textContent=rt.toFixed(3)+' m'; if(rt<1)sBox.classList.add('good'); else if(rt<5)sBox.classList.add('warn'); }
+    else rmseCell.textContent=res.rmse.toFixed(3)+' m';
+    $('#modelused').textContent=res.model+'-parameter';
+
+    // proj out + note
+    $('#projout').value=gen;
+    $('#projwrap').classList.remove('hidden');
+    $('#modelnote').textContent=res.note;$('#modelnote').classList.remove('hidden');
+
+    // push to converter
+    $('#srcproj').value=gen;
+    $('#tgtcrs').value=refEpsg;
+    $('#sendconv').classList.remove('hidden');
+  }catch(err){
+    out.classList.remove('empty');
+    out.innerHTML=`<span class="err">Could not compute: ${err.message}</span>\nCheck that every filled row has four numeric values.`;
+    $('#projwrap').classList.add('hidden');$('#modelnote').classList.add('hidden');
+    ['#st-model','#st-rmse','#st-n'].forEach(id=>$(id).textContent='—');
+  }
+};
+
+/* copy */
+$('#copyproj').onclick=async()=>{
+  try{await navigator.clipboard.writeText($('#projout').value);}
+  catch(e){const t=$('#projout');t.removeAttribute('readonly');t.select();document.execCommand('copy');t.setAttribute('readonly','');}
+  const b=$('#copyproj');b.textContent='COPIED';b.classList.add('done');
+  setTimeout(()=>{b.textContent='COPY';b.classList.remove('done');},1400);
+};
+
+/* ---- convert ---- */
+$('#convert').onclick=()=>{
+  const meta=$('#batchmeta'), out=$('#batchout');
+  if(!ensureDefs()){out.value='';meta.innerHTML=`<span class="err">${PROJ_UNAVAILABLE}</span>`;return;}
+  try{
+    const srcStr=$('#srcproj').value.trim();
+    if(!srcStr){out.value='';meta.innerHTML='<span class="err">Enter a source PROJ string.</span>';return;}
+    const tgt='EPSG:'+$('#tgtcrs').value;
+    // validate source by attempting a probe transform
+    try{proj4(srcStr,tgt,[0,0]);}catch(e){out.value='';meta.innerHTML='<span class="err">Source PROJ string is not valid.</span>';return;}
+
+    const lines=$('#batchin').value.replace(/\r/g,'').split('\n');
+    const rows=[];let ok=0,bad=0;
+    for(let i=0;i<lines.length;i++){
+      const line=lines[i].trim();if(!line)continue;
+      const tk=line.split(/[\s,;\t]+/);
+      if(tk.length<2){rows.push(`row ${i+1}: need E and N`);bad++;continue;}
+      const e=Number(tk[0]),n=Number(tk[1]);
+      if(isNaN(e)||isNaN(n)){rows.push(`row ${i+1}: non-numeric`);bad++;continue;}
+      const [oe,on]=proj4(srcStr,tgt,[e,n]);
+      // lon/lat target: more decimals
+      if($('#tgtcrs').value==='4326') rows.push(`${oe.toFixed(8)}\t${on.toFixed(8)}`);
+      else rows.push(`${oe.toFixed(3)}\t${on.toFixed(3)}`);
+      ok++;
+    }
+    out.value=rows.join('\n');
+    meta.innerHTML=`<span>converted <b>${ok}</b></span>${bad?`<span class="err">errors <b>${bad}</b></span>`:''}<span>target <b>${tgt}</b></span>`;
+  }catch(err){out.value='';meta.innerHTML=`<span class="err">Conversion failed: ${err.message}</span>`;}
+};
+
+/* keep converter default in sync while it is still untouched */
+let srcTouched=false;
+$('#srcproj').addEventListener('input',()=>srcTouched=true);
+['#meridian','#units'].forEach(id=>$(id).addEventListener('change',()=>{if(!srcTouched)$('#srcproj').value=cassiniBaseProj4($('#meridian').value,$('#units').value);}));
+</script>
+</body>
+</html>
