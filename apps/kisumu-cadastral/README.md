@@ -29,7 +29,7 @@ Internet is only used for basemap tiles and web fonts (the app degrades graceful
 ## Sign-in (demo)
 | Role | Username | Password | Access |
 |---|---|---|---|
-| Land Officer | `admin` | `kisumu2026` | Full — proprietor names, inspection flags |
+| Land Officer | `admin` |  | Full — proprietor names, inspection flags |
 | Developer | `guest` | `guest` | Read-only — proprietor names masked |
 
 ## What's inside
