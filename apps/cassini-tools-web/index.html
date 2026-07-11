@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      Cassini Tools — Kenya Cassini-Soldner ⇄ UTM Arc 1960 | Mapnovate
+    </title>
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <div class="wrap nav">
+        <a
+          class="logo"
+          href="../../index.html"
+          aria-label="Mapnovate — Let's map our world"
+        >
+          <img class="mark" src="assets/mark_white.png" alt="Mapnovate" />
+          <span class="wordmark"><b>MAP</b><i>NOVATE</i></span>
+        </a>
+        <div class="logo-div" aria-hidden="true"></div>
+        <div class="appname">
+          <b>Cassini Tools</b><span>Kenya cadastral grid converter</span>
+        </div>
+        <div class="sp"></div>
+        <a class="link" href="#convert">Converter</a>
+        <a class="link" href="#map">Map</a>
+        <a class="link" href="#how">How it works</a>
+        <a class="link" href="#accuracy">Accuracy</a>
+        <a class="link" href="#proj">CRS string</a>
+        <a class="ghost" href="#convert">Open converter</a>
+      </div>
+    </header>
+
+    <a id="top"></a>
+    <div class="hero">
+      <svg
+        class="grid-art"
+        preserveAspectRatio="xMidYMid slice"
+        viewBox="0 0 1200 600"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <defs>
+          <pattern
+            id="utmg"
+            width="60"
+            height="60"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M60 0 H0 V60"
+              fill="none"
+              stroke="#1b3a63"
+              stroke-width="1"
+            />
+          </pattern>
+        </defs>
+        <rect width="1200" height="600" fill="url(#utmg)" />
+        <g fill="none" stroke="#12406b" stroke-width="1.4" opacity=".9">
+          <path d="M120 -20 Q210 300 120 620" />
+          <path d="M240 -20 Q330 300 240 620" />
+          <path d="M360 -20 Q450 300 360 620" />
+          <path d="M40 130 Q400 90 760 130" />
+          <path d="M40 300 Q400 260 760 300" />
+          <path d="M40 470 Q400 430 760 470" />
+        </g>
+        <g fill="#00a896">
+          <circle cx="240" cy="130" r="4" />
+          <circle cx="360" cy="300" r="4" />
+          <circle cx="480" cy="470" r="4" />
+        </g>
+        <g fill="#2ecc80">
+          <circle cx="840" cy="180" r="4" />
+          <circle cx="960" cy="360" r="4" />
+          <circle cx="1080" cy="240" r="4" />
+        </g>
+      </svg>
+      <div class="wrap">
+        <div class="eyebrow">Cassini-Soldner · Clarke 1858 · Arc 1960</div>
+        <div class="hero-cols">
+          <h1>
+            Turn Kenya's legacy <em>Cassini</em> coordinates into UTM you can
+            trust.
+          </h1>
+          <div class="hero-aside">
+            <p class="lede">
+              A rigorous Cassini-Soldner projection, refined with a national
+              network of surveyed toposheet corners, converts cadastral grid
+              coordinates — in metres or feet — to UTM Arc 1960 and back, at
+              metre-level accuracy.
+            </p>
+            <div class="cta-row">
+              <button
+                class="btn btn-primary"
+                onclick="document.getElementById('convert').scrollIntoView()"
+              >
+                Convert coordinates
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M5 12h14M13 6l6 6-6 6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+              <a class="btn btn-ghost" href="#how">See the method</a>
+            </div>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <b id="s_pts">634</b><span>ground control points</span>
+          </div>
+          <div class="stat"><b>±3 m</b><span>median accuracy</span></div>
+          <div class="stat"><b>4</b><span>Cassini belts · 35–41°E</span></div>
+          <div class="stat"><b>2-way</b><span>Cassini ⇄ UTM</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ CONVERTER ============ -->
+    <div class="wrap tool">
+      <a id="convert"></a>
+      <div class="card">
+        <div class="tool-head">
+          <span class="head-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 8h12l-3-3M4 8l3 3" />
+              <path d="M20 16H8l3 3M20 16l-3-3" />
+            </svg>
+          </span>
+          <h2>Coordinate converter</h2>
+          <div class="dir-toggle" id="dirToggle">
+            <button data-dir="c2u" class="on">Cassini → UTM</button>
+            <button data-dir="u2c">UTM → Cassini</button>
+          </div>
+        </div>
+        <div class="tool-body">
+          <div class="opts">
+            <div class="field">
+              <label>Cassini belt (central meridian)</label>
+              <select id="belt">
+                <option value="auto">Auto-detect</option>
+                <option value="35">35°E</option>
+                <option value="37">37°E</option>
+                <option value="39">39°E</option>
+                <option value="41">41°E</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Hemisphere</label>
+              <select id="hemi">
+                <option value="auto">Auto-detect</option>
+                <option value="S">South of equator</option>
+                <option value="N">North of equator</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Cassini units</label>
+              <select id="cunit">
+                <option value="m" selected>Metres</option>
+                <option value="ft">Feet</option>
+              </select>
+            </div>
+            <label class="chk"
+              ><input type="checkbox" id="useCtrl" checked /> Ground-control
+              correction</label
+            >
+          </div>
+          <div class="io">
+            <div class="io-col">
+              <label id="lblIn"
+                ><span>Input — Cassini</span
+                ><span class="unit" id="unitIn">X&nbsp;Y in feet</span></label
+              >
+              <textarea
+                id="input"
+                spellcheck="false"
+                placeholder="One point per line: Easting  Northing"
+              ></textarea>
+            </div>
+            <div class="io-col">
+              <label id="lblOut"
+                ><span>Output — UTM Arc 1960</span
+                ><span class="unit" id="unitOut"
+                  >E&nbsp;N in metres</span
+                ></label
+              >
+              <textarea
+                id="output"
+                spellcheck="false"
+                readonly
+                placeholder="Results appear here — E  N  ·  belt  ·  nearest control"
+              ></textarea>
+            </div>
+          </div>
+          <div class="run-row">
+            <button class="btn" id="runBtn">Convert</button>
+            <div class="status" id="status">
+              Paste coordinates, or
+              <a class="mini" id="loadSample" style="color: var(--teal)"
+                >load a sample</a
+              >.
+            </div>
+            <div class="mini">
+              <a id="copyOut" style="color: var(--teal)">Copy output</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ MAP PREVIEW ============ -->
+    <section class="mapsec">
+      <div class="wrap">
+        <div class="sec-eyebrow">Spatial preview</div>
+        <h2>See your points on the map.</h2>
+        <p class="sub">
+          Converted points plot live on an interactive map alongside the Survey
+          of Kenya toposheet grid and the ground-control network. Toggle layers
+          and switch between satellite and street basemaps.
+        </p>
+      </div>
+      <div class="wrap">
+        <div class="map-card">
+          <div class="map-toolbar">
+            <div class="map-legend">
+              <span class="lg"><i class="sw sw-pt"></i> Converted points</span>
+              <span class="lg"><i class="sw sw-ctrl"></i> Control points</span>
+              <span class="lg"><i class="sw sw-grid"></i> Toposheet grid</span>
+            </div>
+            <div class="map-toggles">
+              <label class="mtog"
+                ><input type="checkbox" id="tgPts" checked /> Points</label
+              >
+              <label class="mtog"
+                ><input type="checkbox" id="tgCtrl" /> Control</label
+              >
+              <label class="mtog"
+                ><input type="checkbox" id="tgGrid" checked /> Grid</label
+              >
+              <button class="map-btn" id="fitBtn" type="button">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M4 9V5a1 1 0 011-1h4M15 4h4a1 1 0 011 1v4M20 15v4a1 1 0 01-1 1h-4M9 20H5a1 1 0 01-1-1v-4"
+                  />
+                </svg>
+                Fit
+              </button>
+            </div>
+          </div>
+          <div id="map" class="map-canvas"><a id="map"></a></div>
+          <div class="map-foot" id="mapFoot">
+            Run a conversion above to plot points. Toggle the toposheet grid and
+            click any sheet for its number and name.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW ============ -->
+    <section class="explain">
+      <a id="how"></a>
+      <div class="wrap">
+        <div class="sec-eyebrow">The method</div>
+        <h2>Two layers: a rigorous projection, then real-world control.</h2>
+        <p class="sub">
+          Kenya's pre-1950 cadastral surveys used the Cassini-Soldner projection
+          on the Clarke 1858 ellipsoid, measured in British feet, with belts
+          centred on 35°, 37°, 39° and 41°E. Converting to modern UTM Arc 1960
+          needs more than a formula — the historical grid has local distortions
+          that only surveyed control can capture.
+        </p>
+        <div class="steps">
+          <div class="step">
+            <span class="step-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" />
+                <path d="M12 3v18M4 7.5l8 4.5 8-4.5" />
+              </svg>
+            </span>
+            <div class="n">01 · PROJECTION</div>
+            <h3>Rigorous Cassini-Soldner</h3>
+            <p>
+              Ellipsoidal forward and inverse Cassini-Soldner on Clarke 1858, in
+              feet, per belt — then a geodetic transfer into Arc 1960 (Clarke
+              1880), each belt on its correct UTM zone (35°E→36, 37/39/41°E→37).
+            </p>
+            <span class="tag">Clarke 1858 · a = 20 926 348 ft</span>
+          </div>
+          <div class="step">
+            <span class="step-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <circle cx="6" cy="6" r="2.2" />
+                <circle cx="18" cy="6" r="2.2" />
+                <circle cx="12" cy="18" r="2.2" />
+                <path d="M7.6 7.4L11 15.6M16.4 7.4L13 15.6M8 6h8" />
+              </svg>
+            </span>
+            <div class="n">02 · CONTROL</div>
+            <h3>National corner network</h3>
+            <p>
+              Hundreds of published toposheet corners — each carrying both
+              Cassini and UTM values — are cleaned, de-duplicated and turned
+              into a residual field that corrects the projection locally.
+            </p>
+            <span class="tag">634 control points · 4 belts</span>
+          </div>
+          <div class="step">
+            <span class="step-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="8.5" />
+                <path d="M12 3.5v17M3.5 12h17" />
+                <path d="M6 6l12 12M18 6L6 18" opacity=".5" />
+              </svg>
+            </span>
+            <div class="n">03 · BLEND</div>
+            <h3>Distance-aware correction</h3>
+            <p>
+              Near control, the correction runs at full strength for metre-level
+              results. Far from any control it fades smoothly back to the pure
+              projection, so you never get a wild extrapolation.
+            </p>
+            <span class="tag">Inverse-distance · smooth taper</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ACCURACY ============ -->
+    <div class="band">
+      <a id="accuracy"></a>
+      <svg
+        class="grid-art"
+        preserveAspectRatio="xMidYMid slice"
+        viewBox="0 0 1200 400"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <defs>
+          <pattern id="g2" width="50" height="50" patternUnits="userSpaceOnUse">
+            <path
+              d="M50 0 H0 V50"
+              fill="none"
+              stroke="#12406b"
+              stroke-width="1"
+            />
+          </pattern>
+        </defs>
+        <rect width="1200" height="400" fill="url(#g2)" />
+      </svg>
+      <div class="wrap">
+        <h2>Validated against the surveyed grid.</h2>
+        <div class="acc-grid">
+          <div class="acc-cell">
+            <b>±3 m</b
+            ><span>median error (leave-one-out on sheet corners)</span>
+          </div>
+          <div class="acc-cell">
+            <b>±37 m</b><span>RMSE across all belts</span>
+          </div>
+          <div class="acc-cell">
+            <b>&lt;1 m</b><span>typical near a control point</span>
+          </div>
+          <div class="acc-cell">
+            <b>&lt;1 cm</b><span>Cassini → UTM → Cassini round-trip</span>
+          </div>
+        </div>
+        <p class="note">
+          Accuracy is highest where surveyed control is dense. The leave-one-out
+          test removes each corner and predicts it from its neighbours — a
+          deliberately pessimistic measure, since real conversions fall inside
+          the network rather than at its removed edges. Where control is sparse
+          the result gracefully approaches the rigorous projection (~200 m bias
+          vs the legacy grid) instead of failing. Source: national Survey of
+          Kenya toposheet corner coordinates.
+        </p>
+      </div>
+    </div>
+
+    <!-- ============ PROJ ============ -->
+    <section class="proj">
+      <a id="proj"></a>
+      <div class="wrap">
+        <div class="sec-eyebrow">For GIS &amp; CAD</div>
+        <h2>A ready-to-use CRS definition.</h2>
+        <p class="sub">
+          Drop this PROJ string into QGIS, GDAL or any PROJ-based tool to define
+          a Cassini belt as a custom CRS. Choose your central meridian:
+        </p>
+        <div class="proj-card">
+          <div class="proj-row">
+            <div class="field" style="min-width: 180px">
+              <label>Central meridian</label>
+              <select id="projCm">
+                <option>35</option>
+                <option selected>37</option>
+                <option>39</option>
+                <option>41</option>
+              </select>
+            </div>
+            <label class="chk"
+              ><input type="checkbox" id="projTowgs" checked /> include +towgs84
+              (Arc 1960 → WGS 84)</label
+            >
+          </div>
+          <div class="proj-out" id="projOut">
+            <button class="copy" id="projCopy">Copy</button
+            ><span id="projText"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <div class="foot-brand">
+          <img src="assets/mark_color.png" alt="Mapnovate" />
+          <div>
+            <b>Cassini Tools</b> — Kenya Cassini-Soldner ⇄ UTM Arc 1960.
+            <div class="epsg" style="margin-top: 6px">
+              Targets: EPSG 21037 / 21097 (Arc 1960 UTM 37 S/N) · 21036 / 21096
+              (zone 36). Cassini: Clarke 1858, British foot.
+            </div>
+            <div class="epsg" style="margin-top: 8px">
+              A Mapnovate geospatial tool ·
+              <a href="../../index.html" style="color: var(--teal)"
+                >mapnovate.com</a
+              >
+            </div>
+          </div>
+        </div>
+        <div class="epsg">
+          Runs entirely in your browser · no data leaves the page.
+        </div>
+      </div>
+    </footer>
+
+    <script src="vendor/leaflet/leaflet.js"></script>
+    <script src="control_net_data.js"></script>
+    <script src="cassini_engine.js"></script>
+    <script src="app.js"></script>
+    <script src="map.js"></script>
+  </body>
+</html>
